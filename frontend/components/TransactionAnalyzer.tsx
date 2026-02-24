@@ -11,7 +11,7 @@ import {
 import axios from "axios";
 import { useSession } from "next-auth/react";
 
-const API_BASE = `${process.env.NEXT_PUBLIC_API_URL}/chat`;
+const API_BASE = `${process.env.NEXT_PUBLIC_API_URL}/api/chat`;
 
 export function TransactionAnalyzer({
   onResult,

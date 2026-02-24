@@ -70,7 +70,7 @@ const handler = NextAuth({
         const role = userEmail === adminEmail ? "admin" : "user";
 
         fetch(
-          `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/auth/sync`,
+          `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/auth/sync`,
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },

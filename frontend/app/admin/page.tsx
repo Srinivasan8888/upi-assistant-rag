@@ -67,8 +67,8 @@ export default function AdminPage() {
     setLoading(true);
     try {
       const [usersRes, docsRes] = await Promise.all([
-        axios.get(`${process.env.NEXT_PUBLIC_API_URL}/admin/users`),
-        axios.get(`${process.env.NEXT_PUBLIC_API_URL}/admin/documents`),
+        axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/users`),
+        axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/documents`),
       ]);
       setUsers(usersRes.data.users || []);
       setDocuments(docsRes.data.documents || []);
@@ -90,7 +90,7 @@ export default function AdminPage() {
 
     try {
       await axios.post(
-        `${process.env.NEXT_PUBLIC_API_URL}/admin/ingest-pdf`,
+        `${process.env.NEXT_PUBLIC_API_URL}/api/admin/ingest-pdf`,
         formData,
         {
           headers: { "Content-Type": "multipart/form-data" },
@@ -116,7 +116,7 @@ export default function AdminPage() {
       return;
     try {
       await axios.delete(
-        `${process.env.NEXT_PUBLIC_API_URL}/admin/documents/${id}`,
+        `${process.env.NEXT_PUBLIC_API_URL}/api/admin/documents/${id}`,
       );
       setDocuments((docs) => docs.filter((d) => d._id !== id));
     } catch (e) {

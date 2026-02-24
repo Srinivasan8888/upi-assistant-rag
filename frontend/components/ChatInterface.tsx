@@ -53,7 +53,7 @@ interface Session {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const API_BASE = `${process.env.NEXT_PUBLIC_API_URL}/chat`;
+const API_BASE = `${process.env.NEXT_PUBLIC_API_URL}/api/chat`;
 
 const SUGGESTED = [
   {
@@ -161,6 +161,7 @@ export default function ChatInterface() {
     try {
       const res = await axios.get(
         `${API_BASE}/sessions?email=${encodeURIComponent(session.user.email)}`,
+        { withCredentials: true },
       );
       setSessions(res.data.sessions || []);
     } catch {
@@ -185,6 +186,7 @@ export default function ChatInterface() {
     try {
       const res = await axios.get(
         `${API_BASE}/history/${sid}?email=${session?.user?.email ? encodeURIComponent(session.user.email) : ""}`,
+        { withCredentials: true },
       );
       const msgs: Message[] = (res.data.messages || []).map(
         (m: {
@@ -233,13 +235,17 @@ export default function ChatInterface() {
     removeFile();
 
     try {
-      const res = await axios.post(`${API_BASE}`, {
-        session_id: sessionId,
-        query: q,
-        file_b64: currentFileB64,
-        mime_type: currentMimeType,
-        userEmail: session?.user?.email,
-      });
+      const res = await axios.post(
+        `${API_BASE}`,
+        {
+          session_id: sessionId,
+          query: q,
+          file_b64: currentFileB64,
+          mime_type: currentMimeType,
+          userEmail: session?.user?.email,
+        },
+        { withCredentials: true },
+      );
       setMessages((prev) => [
         ...prev,
         {
@@ -272,6 +278,7 @@ export default function ChatInterface() {
     try {
       await axios.delete(
         `${API_BASE}/sessions/${sid}?email=${session?.user?.email ? encodeURIComponent(session.user.email) : ""}`,
+        { withCredentials: true },
       );
       setSessions((prev) => prev.filter((s) => s.id !== sid));
       if (sid === sessionId) startNewChat();
