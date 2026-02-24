@@ -67,8 +67,8 @@ export default function AdminPage() {
     setLoading(true);
     try {
       const [usersRes, docsRes] = await Promise.all([
-        axios.get("http://localhost:5000/api/admin/users"),
-        axios.get("http://localhost:5000/api/admin/documents"),
+        axios.get(`${process.env.NEXT_PUBLIC_API_URL}/admin/users`),
+        axios.get(`${process.env.NEXT_PUBLIC_API_URL}/admin/documents`),
       ]);
       setUsers(usersRes.data.users || []);
       setDocuments(docsRes.data.documents || []);
@@ -89,9 +89,13 @@ export default function AdminPage() {
     formData.append("source_domain", "NPCI Guidelines");
 
     try {
-      await axios.post("http://localhost:5000/api/admin/ingest-pdf", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+      await axios.post(
+        `${process.env.NEXT_PUBLIC_API_URL}/admin/ingest-pdf`,
+        formData,
+        {
+          headers: { "Content-Type": "multipart/form-data" },
+        },
+      );
       setUploadSuccess(true);
       setUploadFile(null);
       setTimeout(() => setUploadSuccess(false), 3000);
@@ -111,7 +115,9 @@ export default function AdminPage() {
     )
       return;
     try {
-      await axios.delete(`http://localhost:5000/api/admin/documents/${id}`);
+      await axios.delete(
+        `${process.env.NEXT_PUBLIC_API_URL}/admin/documents/${id}`,
+      );
       setDocuments((docs) => docs.filter((d) => d._id !== id));
     } catch (e) {
       console.error("Delete failed", e);

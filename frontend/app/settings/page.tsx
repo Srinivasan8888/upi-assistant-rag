@@ -15,7 +15,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import axios from "axios";
 
-const API_BASE = "http://localhost:5000/api/chat";
+const API_BASE = `${process.env.NEXT_PUBLIC_API_URL}/chat`;
 
 export default function SettingsPage() {
   const { data: session, status } = useSession();

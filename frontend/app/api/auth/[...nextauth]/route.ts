@@ -69,15 +69,18 @@ const handler = NextAuth({
         const userEmail = (user.email || "").trim().toLowerCase();
         const role = userEmail === adminEmail ? "admin" : "user";
 
-        fetch("http://localhost:5000/api/auth/sync", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            email: user.email,
-            name: user.name || "User",
-            role,
-          }),
-        }).catch((e) => console.error("Failed to sync user:", e));
+        fetch(
+          `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/auth/sync`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              email: user.email,
+              name: user.name || "User",
+              role,
+            }),
+          },
+        ).catch((e) => console.error("Failed to sync user:", e));
       } catch (err) {
         console.error("Error in signIn callback:", err);
       }
