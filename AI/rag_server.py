@@ -1,0 +1,152 @@
+import os
+import sys
+import json
+import logging
+
+# Force UTF-8 output so Windows cp1252 doesn't cause UnicodeEncodeError
+if hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+if hasattr(sys.stderr, 'reconfigure'):
+    sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+
+# Suppress noisy logs
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+logging.getLogger('chromadb').setLevel(logging.ERROR)
+logging.getLogger('sentence_transformers').setLevel(logging.ERROR)
+
+from flask import Flask, request, jsonify
+from flask_cors import CORS
+from dotenv import load_dotenv
+
+# --- Load Config ---
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+load_dotenv(os.path.join(BASE_DIR, '..', 'backend', '.env'))
+
+import google.generativeai as genai
+genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+
+# --- Load Models ONCE at startup ---
+print("Loading MiniLM embedding model (one-time)...")
+from sentence_transformers import SentenceTransformer
+embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
+print("MiniLM loaded [OK]")
+
+print("Connecting to ChromaDB...")
+import chromadb
+DB_DIR = os.path.join(BASE_DIR, "chroma_db")
+chroma_client = chromadb.PersistentClient(path=DB_DIR)
+collection = chroma_client.get_or_create_collection("upi_docs")
+print(f"ChromaDB ready [OK] ({collection.count()} documents)")
+
+# --- Flask App ---
+app = Flask(__name__)
+CORS(app)  # Allow Next.js frontend to call this
+
+def create_embedding(text):
+    return embedding_model.encode(text.replace("\n", " ")).tolist()
+
+def query_similar_chunks(query_embedding, n_results=5):
+    return collection.query(
+        query_embeddings=[query_embedding],
+        n_results=n_results
+    )
+
+@app.route('/health', methods=['GET'])
+def health():
+    return jsonify({"status": "ok", "documents": collection.count()})
+
+@app.route('/ask', methods=['POST'])
+def ask():
+    data = request.get_json()
+    question = data.get('question', '').strip()
+    file_b64 = data.get('file_b64')
+    mime_type = data.get('mime_type')
+
+    if not question and not file_b64:
+        return jsonify({"error": "No question or file provided"}), 400
+
+    # 1. Embed question
+    query_emb = create_embedding(question)
+
+    # 2. Retrieve similar chunks
+    try:
+        results = query_similar_chunks(query_emb, n_results=5)
+    except Exception as e:
+        return jsonify({"error": f"Retrieval failed: {str(e)}"}), 500
+
+    if not results['documents'] or not results['documents'][0]:
+        return jsonify({
+            "answer": "I couldn't find any relevant information in the provided documents.",
+            "sources": []
+        })
+
+    chunks = results['documents'][0]
+    metadatas = results['metadatas'][0]
+
+    # 3. Build context string + deduplicate sources
+    context_str = ""
+    seen_sources = set()
+    sources_list = []
+
+    for i, chunk in enumerate(chunks):
+        source = metadatas[i].get('source', 'unknown') if metadatas else 'unknown'
+        context_str += f"\n--- Source: {source} ---\n{chunk}\n"
+        if source not in seen_sources:
+            sources_list.append(source)
+            seen_sources.add(source)
+
+    # 4. Generate answer with Gemini
+    model = genai.GenerativeModel('gemini-3-flash-preview')
+    prompt = f"""
+You are a helpful and professional UPI Assistant for bank staff.
+Answer the user's query using the provided context below.
+
+SPECIAL INSTRUCTIONS FOR ATTACHMENTS:
+You may receive an attached image or PDF containing a transaction history or receipt. If you do, analyze it carefully to extract the correct transaction ID, date, amounts, and explicitly differentiate between SUCCESSFUL and FAILED transactions.
+If the user's query is just "Uploaded a file" or empty, your primary task is to provide a clear summary of the attached file (listing successful vs failed transactions) and ask the user which specific transaction they need help with. Do NOT say "I don't have enough information" in this case.
+
+If the user asks a specific question and the retrieved context lacks the answer, say "I don't have enough information in the provided context." Do not make up facts. 
+
+CRITICAL FORMATTING RULES:
+1. Do not include raw source filenames in your response (e.g., do not write "(Source: document.pdf)"). The UI will handle source citations automatically.
+2. Write in a clear, natural style.
+3. Use clean markdown formatting without redundant asterisks (e.g., use `### Title` instead of `### **Title**`).
+
+ACTIONABLE RESOLUTIONS:
+If the incident involves filing a dispute, reporting fraud, or contacting support, you MUST proactively generate:
+1. **Direct Action Links**: Provide markdown links to relevant portals if known (e.g., `[National Cyber Crime Portal](https://cybercrime.gov.in)`). 
+2. **Mailto Links**: If an email is required, provide a mailto link with a pre-filled subject and body.
+3. **Complaint Templates**: Provide a professional, ready-to-copy text template inside a markdown code block (i.e. starting with ```text and ending with ```) that the user can copy. Fill in placeholders like `[Transaction ID]`, `[Amount]`, and `[Date]` using info from the uploaded transaction attachment!
+
+Context:
+{context_str}
+
+Question: {question}
+"""
+
+    contents = [prompt]
+    
+    if file_b64 and mime_type:
+        import base64
+        try:
+            file_bytes = base64.b64decode(file_b64)
+            contents.append({
+                "mime_type": mime_type,
+                "data": file_bytes
+            })
+        except Exception as e:
+            print("Failed to decode base64 file:", e)
+
+    try:
+        response = model.generate_content(contents)
+        return jsonify({
+            "answer": response.text,
+            "sources": sources_list
+        })
+    except Exception as e:
+        return jsonify({"error": f"Gemini failed: {str(e)}"}), 500
+
+
+if __name__ == '__main__':
+    print("\nUPI RAG Server running at http://localhost:8000")
+    app.run(host='0.0.0.0', port=8000, debug=False)
