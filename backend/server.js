@@ -15,7 +15,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // --- Auto-start Python RAG Server ---
 function startRagServer() {
-  const ragScript = path.resolve(__dirname, '../AI/rag_server.py');
+  const ragScript = path.resolve(__dirname, '../AI/api/rag_server.py');
 
   console.log('🐍 Starting Python RAG server...');
   const ragProcess = spawn('python', [ragScript], {
