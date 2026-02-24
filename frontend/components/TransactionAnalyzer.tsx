@@ -51,7 +51,7 @@ Return ONLY a raw JSON object with this exact structure, no markdown formatting,
         .trim();
       const parsed = JSON.parse(content);
       setResult(parsed);
-      if (onResult) onResult(parsed);
+      if (onResult) onResult({ ...parsed, originalInput: input });
     } catch (e) {
       console.error("Analysis failed", e);
     } finally {

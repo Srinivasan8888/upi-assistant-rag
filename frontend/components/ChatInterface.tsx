@@ -645,7 +645,7 @@ export default function ChatInterface() {
                 <TransactionAnalyzer
                   onResult={(res) => {
                     setInput(
-                      `Regarding my transaction: The analyzer says it's a ${res.fraudProbability} risk threat. What exactly should I say to the bank?`,
+                      `Regarding this transaction: "${res.originalInput}"\n\nThe analyzer says it's a ${res.fraudProbability} risk threat.\n\nWhat exactly should I say to the bank?`,
                     );
                   }}
                 />
