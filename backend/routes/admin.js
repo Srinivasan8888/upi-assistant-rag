@@ -43,6 +43,23 @@ router.post('/ingest-pdf', upload.single('pdf'), async (req, res) => {
   }
 });
 
+// Delete a document
+router.delete('/documents/:id', async (req, res) => {
+  try {
+    const doc = await Document.findByIdAndDelete(req.params.id);
+    if (!doc) {
+      return res.status(404).json({ error: 'Document not found' });
+    }
+
+    // In a real production system, you would also remove the vectors from ChromaDB here.
+    // Ensure you delete the actual file from the uploads directory if maintaining clean storage.
+
+    res.json({ message: 'Document deleted successfully', id: doc._id });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // List all registered users and their message history
 router.get('/users', async (req, res) => {
   try {

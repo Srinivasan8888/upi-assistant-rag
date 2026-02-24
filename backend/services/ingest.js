@@ -1,47 +1,28 @@
+import axios from 'axios';
 import fs from 'fs';
-import pdf from 'pdf-parse';
-import Document from '../models/Document.js';
+import FormData from 'form-data';
 
-export async function ingestPDF(filePath, documentId) {
+export const ingestPDF = async (filePath, documentId) => {
   try {
-    const dataBuffer = fs.readFileSync(filePath);
-    const data = await pdf(dataBuffer);
+    const formData = new FormData();
+    formData.append('pdf', fs.createReadStream(filePath));
 
-    // TODO: Implement chunking and embedding
-    // For now, just mark as ingested
-    
-    const text = data.text;
-    const chunks = chunkText(text, 500);
-
-    await Document.findByIdAndUpdate(documentId, {
-      status: 'ingested',
-      chunk_count: chunks.length
+    // Send to Python RAG Server for chunking and ChromaDB ingestion
+    const res = await axios.post('http://localhost:8000/ingest', formData, {
+      headers: {
+        ...formData.getHeaders()
+      }
     });
 
-    // Clean up uploaded file
-    fs.unlinkSync(filePath);
+    console.log(`[Ingest] Successfully processed ${documentId}. Result: ${JSON.stringify(res.data)}`);
 
-    console.log(`✅ Ingested PDF: ${documentId}, ${chunks.length} chunks`);
+    // In a real app we might update the Mongo document status to 'Ingested' here.
+
+    // Optional: Clean up temporary upload file if desired
+    // fs.unlinkSync(filePath);
+    return res.data;
+
   } catch (error) {
-    console.error('PDF ingestion error:', error);
-    await Document.findByIdAndUpdate(documentId, { status: 'failed' });
+    console.error(`[Ingest] Error processing document ${documentId}:`, error.message);
   }
-}
-
-function chunkText(text, maxLength) {
-  const chunks = [];
-  const sentences = text.match(/[^.!?]+[.!?]+/g) || [text];
-  
-  let currentChunk = '';
-  for (const sentence of sentences) {
-    if ((currentChunk + sentence).length > maxLength && currentChunk) {
-      chunks.push(currentChunk.trim());
-      currentChunk = sentence;
-    } else {
-      currentChunk += sentence;
-    }
-  }
-  
-  if (currentChunk) chunks.push(currentChunk.trim());
-  return chunks;
-}
+};
