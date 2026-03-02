@@ -1,0 +1,340 @@
+============================================================
+  UPI DISPUTE ASSISTANT — COMPLETE INTERVIEW QUESTION BANK
+============================================================
+
+SECTION A — GENERAL / PROJECT OVERVIEW
+---------------------------------------
+A1.  What is this project? Explain it in 2 minutes.
+A2.  What problem does this project solve?
+A3.  Who is the target user of this application?
+A4.  Why did you choose UPI disputes as the domain?
+A5.  What is RAG? Why did you use it instead of fine-tuning?
+A6.  What is the difference between RAG and a regular LLM chatbot?
+A7.  How does your system prevent hallucination?
+A8.  What is the full tech stack of this project?
+A9.  Walk me through a user's journey from opening the app to getting an answer.
+A10. What would happen if the vector database returns no results?
+
+SECTION B — RAG PIPELINE
+--------------------------
+B1.  Explain the three phases of your RAG pipeline.
+B2.  What is "ingestion" in the context of RAG?
+B3.  What is "retrieval" in the context of RAG?
+B4.  What is "generation" in the context of RAG?
+B5.  What is a document chunk? Why do you need to chunk documents?
+B6.  What chunk size did you use? Why 1000 characters?
+B7.  What is chunk overlap? Your Python code uses 100 — what does that mean?
+B8.  What are the separators used in RecursiveCharacterTextSplitter?
+     (["\n\n", "\n", " ", ""])  — why this order?
+B9.  What happens when you chunk poorly? Give an example of bad chunking.
+B10. How does your Node.js chunking differ from your Python chunking?
+B11. What is the difference between character-level chunking and semantic chunking?
+B12. How many results does your vector search return? (n_results=5) — why 5?
+B13. What is the context string built from? How is it formatted before sending to Gemini?
+B14. How do you handle source deduplication in your RAG pipeline?
+     (seen_sources Set in rag.js)
+B15. What is "context window" and why does it matter for RAG?
+
+SECTION C — EMBEDDINGS
+-----------------------
+C1.  What is a word embedding or sentence embedding?
+C2.  What model do you use for embeddings? (all-MiniLM-L6-v2)
+C3.  How many dimensions does your embedding model produce? (384)
+C4.  What does "pooling: mean" mean in the Xenova pipeline call?
+C5.  What does "normalize: true" do to the vector?
+C6.  Why do you replace \n with space before embedding?
+     (text.replace(/\n/g, ' '))
+C7.  What is cosine similarity? Write the formula.
+C8.  Walk me through your cosineSimilarity() function in rag.js line by line.
+C9.  Why is cosine similarity preferred over Euclidean distance for text?
+C10. What is the range of cosine similarity values? (-1 to +1)
+C11. Why must you use the SAME embedding model for both ingestion and retrieval?
+C12. What is the difference between sentence-transformers (Python) and @xenova/transformers (JS)?
+C13. Why does the model load only once? (singleton pattern with "if (!embedder)")
+C14. What would happen if model dimensions didn't match between ingestion and query?
+C15. How does model.encode() work in Python's sentence-transformers?
+     (Returns a numpy array, .tolist() converts it)
+
+SECTION D — VECTOR DATABASE
+-----------------------------
+D1.  What is a vector database? How is it different from a regular database?
+D2.  What vector database did you use originally? (ChromaDB)
+D3.  What vector database do you use now? (MongoDB Atlas Vector Search)
+D4.  Why did you migrate from ChromaDB to MongoDB Atlas?
+D5.  What is a PersistentClient in ChromaDB? What does it do?
+     (chromadb.PersistentClient(path=DB_DIR) — stores to disk not memory)
+D6.  How does ChromaDB's collection.add() work? What are its parameters?
+     (documents, embeddings, metadatas, ids)
+D7.  How do you generate unique IDs in ChromaDB?
+     (start_idx = collection.count() then start_idx + i)
+D8.  What is collection.query() in ChromaDB?
+D9.  What is MongoDB Atlas $vectorSearch aggregation stage?
+D10. What is numCandidates vs limit in $vectorSearch?
+D11. What index name does your code use? ("default")
+D12. What is HNSW? How does Atlas Vector Search work internally?
+D13. What is ANN (Approximate Nearest Neighbor)?
+D14. What is the fallback when Atlas Vector Search is not enabled?
+     (In-memory cosine similarity in rag.js lines 80-101)
+D15. What are the trade-offs of the fallback method?
+     (O(n) — works for small datasets, not production scale)
+
+SECTION E — BACKEND (Node.js + Express)
+-----------------------------------------
+E1.  What is Express.js? What is it used for in this project?
+E2.  What are the three route files in your backend?
+     (chat.js, admin.js, auth.js)
+E3.  Walk me through POST /api/chat step by step.
+E4.  What is express-validator? Where is it used?
+     (body('session_id').notEmpty() in chat.js)
+E5.  What is a session_id? How is it generated?
+     (`session_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`)
+E6.  Why do you fetch the last 5 messages for context?
+E7.  What is Multer? Why is it used?
+     (File upload middleware for multipart/form-data in admin.js)
+E8.  What is pdf-parse? How does it work?
+     (Extracts raw text from PDF buffer)
+E9.  Why is ingestPDF() called WITHOUT await in the route?
+     (Non-blocking background job pattern)
+E10. What is the risk of fire-and-forget ingestion? How would you fix it in production?
+     (Silent failures — use BullMQ/Redis job queue)
+E11. What status values can a Document have?
+     (pending, ingested, failed)
+E12. What does fs.unlinkSync(filePath) do and why is it called?
+     (Deletes temp upload file after processing)
+E13. What is CORS? How is it configured in your server?
+E14. Why is credentials: true needed in the CORS config?
+E15. What is dotenv? How is it used?
+E16. What does process.exit(1) mean in the database config?
+E17. What is the difference between ES Modules and CommonJS?
+     (type: "module" in package.json, uses import/export not require)
+E18. What is nodemon? Why is it a devDependency?
+E19. What is the /api/health endpoint for?
+E20. How does the delete session route work?
+     (DELETE /api/chat/sessions/:sessionId uses Message.deleteMany)
+
+SECTION F — MONGODB & MONGOOSE
+--------------------------------
+F1.  What is Mongoose? What is a schema?
+F2.  Describe the User schema. What validations does it have?
+F3.  Describe the Message schema. What does sources_used store?
+F4.  Describe the DocumentChunk schema. Why is embedding: [Number]?
+F5.  Describe the Document schema.
+F6.  What does index: true on session_id and email do?
+     (Creates a MongoDB B-tree index for fast lookups)
+F7.  What does unique: true on email do?
+F8.  What does lowercase: true and trim: true on email do?
+F9.  What is findOneAndUpdate? What does upsert: true mean?
+     (Used in auth/sync — creates if not exists, updates if exists)
+F10. What does { new: true } mean in findOneAndUpdate?
+     (Returns the updated document, not the original)
+F11. What is an aggregation pipeline in MongoDB?
+F12. Explain the sessions aggregation pipeline step by step.
+     ($match → $group → $project → $sort)
+F13. What does $min: '$timestamp' do in the $group stage?
+F14. What does $cond do? How is it used for the title field?
+F15. How does the admin/users endpoint join Users and Messages?
+     ($lookup from 'messages' on email/userEmail)
+F16. What does { $size: "$messages" } compute?
+F17. What is $max: "$messages.timestamp" used for?
+F18. What does .lean() do in Mongoose? When is it used?
+     (Returns plain JS objects instead of Mongoose documents — faster)
+F19. What does .sort({ timestamp: -1 }) mean?
+F20. What is mongoose.Schema.Types.Mixed?
+     (Accepts any data type — used for metadata field)
+
+SECTION G — AUTHENTICATION
+----------------------------
+G1.  What is NextAuth.js?
+G2.  What session strategy does your app use? (JWT, not database)
+G3.  What is the difference between JWT and session-based auth?
+G4.  What two providers do you support? (Google OAuth + Credentials)
+G5.  What is GoogleProvider? What credentials does it need?
+G6.  What is CredentialsProvider? What does your authorize() function do?
+G7.  What is NEXTAUTH_SECRET used for? What happens if it's missing?
+G8.  How do you determine if a user is admin?
+     (Compare email to SUPERADMIN_EMAIL env var)
+G9.  Where is the role stored? (In the JWT token.role)
+G10. What are the three NextAuth callbacks you configured?
+     (signIn, jwt, session)
+G11. What does the signIn callback do in your code?
+     (Fires fetch to /api/auth/sync — fire and forget)
+G12. What does the jwt callback do?
+     (Sets token.role and token.email on first sign-in)
+G13. What does the session callback do?
+     (Attaches role and email from token to session.user)
+G14. What is the custom signIn page? (/login)
+G15. What is the spread operator (session.user as any).role?
+     (TypeScript type casting to access custom property)
+G16. How is the admin page protected?
+     (Client-side: check role, redirect to "/" if not admin)
+G17. What is OAuth? How does Google OAuth work?
+G18. What is an access token vs a refresh token?
+G19. What is the Authorized redirect URI in Google Cloud Console?
+     (http://localhost:3000/api/auth/callback/google)
+
+SECTION H — FRONTEND (Next.js + React)
+-----------------------------------------
+H1.  What is Next.js? What is the App Router?
+H2.  What is "use client" directive and why is it needed?
+H3.  What are the main state variables in ChatInterface?
+H4.  What is useCallback and why is loadSessions wrapped in it?
+H5.  What is useRef? What three refs are used?
+     (scrollRef, textareaRef, fileInputRef)
+H6.  How does auto-scroll work? (scrollRef.current?.scrollIntoView)
+H7.  How does textarea auto-resize work?
+     (scrollHeight tracking in useEffect on input state)
+H8.  What is the hydration mismatch problem? How do you fix it?
+     (mounted state flag, render theme UI only after useEffect)
+H9.  What is react-markdown? What is remark-gfm?
+H10. How does the custom code renderer in ReactMarkdown work?
+     (Overrides <code> component, adds copy + PDF download buttons)
+H11. What is jsPDF? How do you export complaint letters?
+H12. What is useSession() from NextAuth?
+H13. How does file attachment work in the chat?
+     (FileReader → readAsDataURL → split base64 → store in state)
+H14. Why do you split(",")[1] from the FileReader result?
+     (Removes "data:application/pdf;base64," prefix)
+H15. What is the sendMessage function flow?
+     (Optimistic UI update → Axios POST → append AI response)
+H16. What is "optimistic UI"? Does your chat use it?
+H17. How does session history load from the server?
+H18. What framework is used for icons? (lucide-react)
+H19. What is axios.get with withCredentials: true for?
+H20. How does theme toggling work? (next-themes, useTheme hook)
+H21. What is the TransactionAnalyzer component? Where is it shown?
+     (Welcome screen, before any messages)
+H22. What is the profile dropdown? How is it closed on outside click?
+     (Backdrop div with onClick={() => setProfileMenuOpen(false)})
+H23. What happens when you click "Share"?
+     (Copies /share/:sessionId URL to clipboard)
+
+SECTION I — SYSTEM PROMPT & AI
+---------------------------------
+I1.  What is a system prompt?
+I2.  What are the sections in your system prompt?
+I3.  Why do you tell the AI "Do not include raw source filenames"?
+     (UI handles source citations automatically with badges)
+I4.  Why do you allow Gemini to use general knowledge if context is missing?
+     (Prevents unhelpful "I don't know" responses)
+I5.  Why do you ask for complaint templates inside triple backticks?
+     (Triggers the custom code block renderer for copy/PDF export)
+I6.  What is the "future date" instruction in your prompt? Why?
+     (Test data has 2026/2027 dates — prevent false High Risk flags)
+I7.  What is Gemini Flash? How is it different from Gemini Pro?
+I8.  What is multimodal AI? How does your app use it?
+     (File is sent as inlineData with base64 and mimeType to Gemini)
+I9.  What is the inlineData format in Gemini's API?
+I10. What is the difference between result.text and result.response.text()?
+     (Old SDK vs new @google/genai SDK)
+I11. What happens if Gemini fails? How is it handled?
+     (try/catch, throws error with message, 500 returned to frontend)
+I12. Why do you instantiate GoogleGenAI lazily (if (!ai))?
+I13. What does the prompt do differently when a file is uploaded vs not?
+I14. What is "prompt engineering"? Give examples from your project.
+I15. What are the risks of relying on LLMs to return JSON?
+     (Non-deterministic, may wrap in markdown — strip with .replace())
+I16. What is hallucination in LLMs? How does RAG reduce it?
+
+SECTION J — PYTHON / FLASK LAYER
+-----------------------------------
+J1.  What is Flask? What is a Blueprint?
+     (transactions_bp = Blueprint('transactions', __name__))
+J2.  What is SQLite? Why is it used for transactions?
+J3.  What is conn.row_factory = sqlite3.Row? What does it enable?
+     (Allows accessing columns by name like dict(row))
+J4.  How does GET /transactions work? What query param does it accept?
+J5.  What SQL query is used to get transactions for a user?
+     (WHERE sender_upi_id = ? OR receiver_upi_id = ?)
+J6.  What does ? (parameterized query) prevent?
+     (SQL injection attacks)
+J7.  Why is conn.close() in a finally block?
+J8.  What is sentence_transformers.SentenceTransformer?
+J9.  Why is the model loaded at module import time in embedding.py?
+     (Expensive operation — load once, reuse many times)
+J10. What does model.encode(text).tolist() return?
+     (numpy array → Python list of floats)
+J11. What is RecursiveCharacterTextSplitter from LangChain?
+J12. Why does chunk.py try two different import paths?
+     (langchain_text_splitters vs langchain.text_splitter — handles version differences)
+J13. What is chunk_overlap=100? Why is it useful?
+     (Ensures context continuity between adjacent chunks)
+J14. What are the separators in RecursiveCharacterTextSplitter and why that order?
+     ("\n\n" for paragraphs → "\n" for lines → " " for words → "" for chars)
+J15. What is the difference between ChromaDB's query() and MongoDB's $vectorSearch?
+
+SECTION K — DOMAIN KNOWLEDGE (UPI / BANKING)
+----------------------------------------------
+K1.  What is UPI? Who manages it?
+     (Unified Payments Interface, managed by NPCI)
+K2.  What is NPCI?
+     (National Payments Corporation of India)
+K3.  What is a VPA (Virtual Payment Address)?
+     (e.g., user@paytm — the UPI ID)
+K4.  What is the difference between a failed UPI transaction and fraud?
+K5.  What is the NPCI dispute timeline for failed transactions?
+     (T+1 for technical failure, T+5 for pending)
+K6.  What is the RBI rule on unauthorized transaction liability?
+     (Zero liability if reported within 3 working days)
+K7.  What is cybercrime.gov.in?
+     (National Cyber Crime Reporting Portal)
+K8.  What is the Banking Ombudsman? When can a user approach it?
+     (If bank doesn't resolve in 30 days)
+K9.  What types of documents are in your UPI_Corpus?
+     (NPCI circulars, RBI guidelines, bank-specific guides, fraud guidelines)
+K10. What is TPAP in UPI?
+     (Third-Party Application Provider — e.g., PhonePe, Google Pay)
+
+SECTION L — DEPLOYMENT & DEVOPS
+----------------------------------
+L1.  Where is the frontend deployed? (Netlify)
+L2.  What is Netlify? How does it build a Next.js app?
+L3.  What is netlify.toml used for?
+L4.  What is the NEXT_PUBLIC_ prefix for environment variables?
+     (Exposes the var to the browser bundle — not server-only)
+L5.  What environment variables does the backend need?
+L6.  What environment variables does the frontend need?
+L7.  What is the purpose of the start.bat file?
+L8.  What is MongoDB Atlas? How is it different from local MongoDB?
+L9.  What port does the backend run on? Frontend?
+     (Backend: 5000, Frontend: 3000)
+L10. How would you add HTTPS / TLS to this project in production?
+
+SECTION M — TRADE-OFFS & IMPROVEMENTS
+----------------------------------------
+M1.  What would you change if you had more time?
+M2.  How would you scale the embedding/ingestion for 10,000 documents?
+M3.  How would you add streaming responses?
+M4.  What is RAGAS? How would you evaluate your RAG quality?
+M5.  What is LangSmith / Langfuse? Why would you use it?
+M6.  What is a job queue? What library would you use?
+     (BullMQ with Redis for reliable background jobs)
+M7.  What are the limitations of JWT (can't revoke sessions)?
+M8.  How would you add rate limiting?
+     (express-rate-limit middleware)
+M9.  How would you add multi-language support?
+M10. Why is Base64 file transfer used instead of multipart for chat?
+     (Simpler JSON body — trade-off: 33% size overhead)
+M11. What monitoring would you add to this in production?
+M12. How would you handle Gemini API rate limits?
+M13. What is semantic caching? How would it help this project?
+M14. How would you add voice input?
+     (Whisper API for speech-to-text)
+M15. What is Re-ranking in RAG? Would you add it here?
+     (Cross-encoder re-ranks top-K results for better precision)
+
+SECTION N — BEHAVIOURAL
+------------------------
+N1.  Why did you build this project?
+N2.  What was the most difficult part of building it?
+N3.  What did you learn from this project?
+N4.  How long did it take to build?
+N5.  Have you deployed it to production?
+N6.  What would you build next?
+N7.  How did you learn RAG?
+N8.  Describe a bug you fixed in this project.
+N9.  Did you work on this alone or with a team?
+N10. How does this project relate to your career goals?
+
+============================================================
+  TOTAL: 186 QUESTIONS ACROSS 14 SECTIONS
+============================================================

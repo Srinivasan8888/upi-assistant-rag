@@ -9,3 +9,7 @@ langchain-text-splitters
 python-dotenv
 tqdm
 google-generativeai
+ragas
+datasets
+pandas
+langchain-google-genai
